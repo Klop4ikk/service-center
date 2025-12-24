@@ -1,0 +1,112 @@
+<!-- templates/404.html -->
+{% extends "layout.html" %}
+
+{% block title %}Страница не найдена{% endblock %}
+
+{% block content %}
+<div class="error-container">
+    <div class="error-content">
+        <div class="error-icon">
+            <i class="fas fa-exclamation-triangle fa-5x"></i>
+        </div>
+        <h1>404 - Страница не найдена</h1>
+        <p>Запрашиваемая страница не существует или была перемещена.</p>
+        
+        <div class="error-actions">
+            <a href="{{ url_for('index') }}" class="btn btn-primary">
+                <i class="fas fa-home"></i> На главную
+            </a>
+            <button onclick="history.back()" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Назад
+            </button>
+        </div>
+        
+        <div class="error-help">
+            <h3>Что можно сделать:</h3>
+            <ul>
+                <li>Проверьте правильность введенного адреса</li>
+                <li>Воспользуйтесь меню навигации</li>
+                <li>Обратитесь к администратору системы</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<style>
+.error-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+    padding: 2rem;
+}
+
+.error-content {
+    text-align: center;
+    max-width: 600px;
+    background: white;
+    border-radius: 10px;
+    padding: 3rem;
+    box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+}
+
+.error-icon {
+    margin-bottom: 2rem;
+    color: #ffc107;
+}
+
+.error-content h1 {
+    margin: 0 0 1rem 0;
+    color: #495057;
+    font-size: 2rem;
+}
+
+.error-content p {
+    margin: 0 0 2rem 0;
+    color: #6c757d;
+    font-size: 1.1rem;
+    line-height: 1.6;
+}
+
+.error-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-bottom: 2rem;
+}
+
+.error-help {
+    text-align: left;
+    padding: 1.5rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #4b6cb7;
+}
+
+.error-help h3 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    color: #495057;
+}
+
+.error-help ul {
+    margin: 0;
+    padding-left: 1.5rem;
+}
+
+.error-help li {
+    margin-bottom: 0.5rem;
+    color: #6c757d;
+}
+
+@media (max-width: 768px) {
+    .error-actions {
+        flex-direction: column;
+    }
+    
+    .btn {
+        width: 100%;
+    }
+}
+</style>
+{% endblock %}

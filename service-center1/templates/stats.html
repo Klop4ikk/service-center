@@ -1,0 +1,552 @@
+{% extends "layout.html" %}
+
+{% block title %}Статистика работы сервисного центра{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-chart-bar"></i> Статистика работы сервисного центра</h1>
+</div>
+
+<!-- Основные метрики -->
+<div class="metrics-grid">
+    <div class="metric-card metric-total">
+        <div class="metric-icon">
+            <i class="fas fa-clipboard-list"></i>
+        </div>
+        <div class="metric-content">
+            <h3>Всего заявок</h3>
+            <p class="metric-number">{{ total_requests }}</p>
+        </div>
+    </div>
+    
+    <div class="metric-card metric-completed">
+        <div class="metric-icon">
+            <i class="fas fa-check-circle"></i>
+        </div>
+        <div class="metric-content">
+            <h3>Выполнено</h3>
+            <p class="metric-number">{{ completed_requests }}</p>
+            <p class="metric-percentage">
+                {% if total_requests > 0 %}
+                {{ (completed_requests / total_requests * 100)|round(1) }}%
+                {% else %}
+                0%
+                {% endif %}
+            </p>
+        </div>
+    </div>
+    
+    <div class="metric-card metric-progress">
+        <div class="metric-icon">
+            <i class="fas fa-wrench"></i>
+        </div>
+        <div class="metric-content">
+            <h3>В работе</h3>
+            <p class="metric-number">{{ in_progress_requests }}</p>
+            <p class="metric-percentage">
+                {% if total_requests > 0 %}
+                {{ (in_progress_requests / total_requests * 100)|round(1) }}%
+                {% else %}
+                0%
+                {% endif %}
+            </p>
+        </div>
+    </div>
+    
+    <div class="metric-card metric-time">
+        <div class="metric-icon">
+            <i class="fas fa-clock"></i>
+        </div>
+        <div class="metric-content">
+            <h3>Среднее время</h3>
+            <p class="metric-number">{{ avg_days }} дней</p>
+            <p class="metric-subtitle">выполнения заявки</p>
+        </div>
+    </div>
+</div>
+
+<!-- Статистика по типам техники -->
+<div class="chart-section">
+    <h2><i class="fas fa-tv"></i> Статистика по видам техники</h2>
+    
+    <div class="chart-container">
+        <div class="chart-table">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Вид техники</th>
+                        <th>Количество</th>
+                        <th>Процент</th>
+                        <th>График</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for stat in equipment_stats %}
+                    <tr>
+                        <td>{{ stat.home_tech_type }}</td>
+                        <td>{{ stat.count }}</td>
+                        <td>{{ stat.percentage }}%</td>
+                        <td>
+                            <div class="progress-bar-horizontal">
+                                <div class="progress-fill" style="width: {{ stat.percentage }}%"></div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Статистика по статусам -->
+<div class="chart-section">
+    <h2><i class="fas fa-tasks"></i> Статистика по статусам</h2>
+    
+    <div class="status-chart">
+        <div class="status-grid">
+            {% for stat in status_stats %}
+            <div class="status-item">
+                <div class="status-header">
+                    <h4>
+                        {% if stat.request_status == 'Новая заявка' %}
+                        <i class="fas fa-clock"></i>
+                        {% elif stat.request_status == 'В процессе ремонта' %}
+                        <i class="fas fa-wrench"></i>
+                        {% elif stat.request_status == 'Ожидание запчастей' %}
+                        <i class="fas fa-box-open"></i>
+                        {% elif stat.request_status == 'Готова к выдаче' %}
+                        <i class="fas fa-check-circle"></i>
+                        {% endif %}
+                        {{ stat.request_status }}
+                    </h4>
+                </div>
+                <div class="status-body">
+                    <p class="status-count">{{ stat.count }}</p>
+                    <p class="status-percentage">{{ stat.percentage }}%</p>
+                </div>
+                <div class="status-progress">
+                    <div class="progress-bar-horizontal">
+                        <div class="progress-fill" style="width: {{ stat.percentage }}%"></div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Статистика по месяцам -->
+<div class="chart-section">
+    <h2><i class="fas fa-calendar-alt"></i> Статистика по месяцам</h2>
+    
+    <div class="monthly-chart">
+        <div class="chart-table">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Месяц</th>
+                        <th>Всего заявок</th>
+                        <th>Выполнено</th>
+                        <th>Процент выполнения</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for stat in monthly_stats %}
+                    <tr>
+                        <td>{{ stat.month }}</td>
+                        <td>{{ stat.count }}</td>
+                        <td>{{ stat.completed }}</td>
+                        <td>
+                            {% if stat.count > 0 %}
+                            {{ (stat.completed / stat.count * 100)|round(1) }}%
+                            {% else %}
+                            0%
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Топ проблем -->
+{% if common_problems %}
+<div class="chart-section">
+    <h2><i class="fas fa-exclamation-triangle"></i> Самые частые проблемы</h2>
+    
+    <div class="problems-list">
+        {% for problem in common_problems %}
+        <div class="problem-item">
+            <div class="problem-rank">#{{ loop.index }}</div>
+            <div class="problem-content">
+                <h4>{{ problem.problem_description[:100] }}{% if problem.problem_description|length > 100 %}...{% endif %}</h4>
+                <p>{{ problem.count }} заявок</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- QR-код для фидбека -->
+<div class="qr-section">
+    <h2><i class="fas fa-qrcode"></i> QR-код для оценки качества</h2>
+    <p>Клиенты могут отсканировать QR-код для заполнения формы оценки работы:</p>
+    
+    <div class="qr-container">
+        <img src="{{ url_for('generate_feedback_qr', request_id=1) }}" 
+             alt="QR-код для фидбека" 
+             class="qr-image">
+        
+        <div class="qr-info">
+            <h4>Инструкция по использованию:</h4>
+            <ol>
+                <li>Распечатайте QR-код</li>
+                <li>Прикрепите к выполненной заявке</li>
+                <li>Клиент отсканирует код камерой телефона</li>
+                <li>Заполнит форму оценки работы сервисного центра</li>
+            </ol>
+            
+            <div class="qr-links">
+                <a href="{{ url_for('generate_feedback_qr', request_id=1) }}" 
+                   class="btn btn-primary" 
+                   download="feedback_qr.png">
+                    <i class="fas fa-download"></i> Скачать QR-код
+                </a>
+                
+                <a href="https://docs.google.com/forms/d/e/1FAIpQLSdhZcExx6LSIXxk0ub55mSu-WIh23WYdGG9HY5EZhLDo7P8eA/viewform?usp=sf_link" 
+                   class="btn btn-outline" 
+                   target="_blank">
+                    <i class="fas fa-external-link-alt"></i> Открыть форму
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Экспорт статистики -->
+<div class="export-section">
+    <h2><i class="fas fa-file-export"></i> Экспорт статистики</h2>
+    
+    <div class="export-buttons">
+        <button class="btn btn-primary" onclick="exportToPDF()">
+            <i class="fas fa-file-pdf"></i> Экспорт в PDF
+        </button>
+        
+        <button class="btn btn-success" onclick="exportToExcel()">
+            <i class="fas fa-file-excel"></i> Экспорт в Excel
+        </button>
+        
+        <button class="btn btn-info" onclick="printStatistics()">
+            <i class="fas fa-print"></i> Печать
+        </button>
+    </div>
+</div>
+
+<style>
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.metric-card {
+    background: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    transition: transform 0.3s;
+}
+
+.metric-card:hover {
+    transform: translateY(-5px);
+}
+
+.metric-icon {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    color: white;
+}
+
+.metric-total .metric-icon {
+    background: linear-gradient(135deg, #4b6cb7 0%, #182848 100%);
+}
+
+.metric-completed .metric-icon {
+    background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
+}
+
+.metric-progress .metric-icon {
+    background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
+}
+
+.metric-time .metric-icon {
+    background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+}
+
+.metric-content h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1rem;
+    color: #6c757d;
+}
+
+.metric-number {
+    margin: 0;
+    font-size: 2rem;
+    font-weight: 700;
+    color: #495057;
+    line-height: 1;
+}
+
+.metric-percentage {
+    margin: 0.25rem 0 0 0;
+    font-size: 0.9rem;
+    color: #28a745;
+    font-weight: 600;
+}
+
+.metric-subtitle {
+    margin: 0.25rem 0 0 0;
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+
+.chart-section {
+    background: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.chart-section h2 {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    color: #495057;
+    font-size: 1.3rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.chart-table {
+    overflow-x: auto;
+}
+
+.progress-bar-horizontal {
+    height: 8px;
+    background: #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4b6cb7 0%, #182848 100%);
+    border-radius: 4px;
+}
+
+.status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.status-item {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 1rem;
+    border-left: 4px solid #4b6cb7;
+}
+
+.status-header h4 {
+    margin: 0 0 1rem 0;
+    font-size: 0.9rem;
+    color: #495057;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.status-body {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.status-count {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #495057;
+}
+
+.status-percentage {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #28a745;
+    font-weight: 600;
+}
+
+.problems-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.problem-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #ffc107;
+}
+
+.problem-rank {
+    width: 40px;
+    height: 40px;
+    background: #ffc107;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.2rem;
+}
+
+.problem-content h4 {
+    margin: 0 0 0.25rem 0;
+    font-size: 1rem;
+    color: #495057;
+}
+
+.problem-content p {
+    margin: 0;
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+.qr-section {
+    background: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.qr-container {
+    display: flex;
+    align-items: flex-start;
+    gap: 2rem;
+    margin-top: 1rem;
+}
+
+.qr-image {
+    width: 200px;
+    height: 200px;
+    border: 2px solid #4b6cb7;
+    border-radius: 8px;
+    padding: 10px;
+    background: white;
+}
+
+.qr-info {
+    flex: 1;
+}
+
+.qr-info h4 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    color: #495057;
+}
+
+.qr-info ol {
+    margin: 0 0 1.5rem 0;
+    padding-left: 1.5rem;
+}
+
+.qr-info li {
+    margin-bottom: 0.5rem;
+    line-height: 1.5;
+}
+
+.qr-links {
+    display: flex;
+    gap: 1rem;
+}
+
+.export-section {
+    background: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.export-buttons {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+@media (max-width: 768px) {
+    .metrics-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .status-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .qr-container {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+    
+    .export-buttons {
+        flex-direction: column;
+    }
+    
+    .btn {
+        width: 100%;
+    }
+}
+</style>
+
+<script>
+function exportToPDF() {
+    alert('Экспорт в PDF - эта функция требует подключения библиотеки jsPDF');
+    // В реальном приложении здесь будет код для генерации PDF
+}
+
+function exportToExcel() {
+    alert('Экспорт в Excel - эта функция требует подключения библиотеки SheetJS');
+    // В реальном приложении здесь будет код для генерации Excel файла
+}
+
+function printStatistics() {
+    window.print();
+}
+
+// Автоматическое обновление статистики каждые 5 минут
+setTimeout(function() {
+    location.reload();
+}, 5 * 60 * 1000); // 5 минут
+</script>
+{% endblock %}

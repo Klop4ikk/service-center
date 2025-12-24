@@ -1,0 +1,836 @@
+{% extends "layout.html" %}
+
+{% block title %}Статистика качества работы{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-chart-line"></i> Статистика качества работы</h1>
+    <p class="page-subtitle">Анализ эффективности и своевременности выполнения заявок</p>
+</div>
+
+<!-- Ключевые показатели качества -->
+<div class="kpi-grid">
+    <div class="kpi-card">
+        <div class="kpi-header">
+            <h3><i class="fas fa-clock"></i> Среднее время выполнения</h3>
+        </div>
+        <div class="kpi-body">
+            <div class="kpi-value">{{ avg_days }} дней</div>
+            <div class="kpi-trend {% if avg_days <= 5 %}trend-positive{% else %}trend-negative{% endif %}">
+                {% if avg_days <= 5 %}
+                <i class="fas fa-arrow-down"></i> В пределах нормы
+                {% else %}
+                <i class="fas fa-arrow-up"></i> Требует оптимизации
+                {% endif %}
+            </div>
+        </div>
+        <div class="kpi-footer">
+            <small>Целевой показатель: ≤ 5 дней</small>
+        </div>
+    </div>
+    
+    <div class="kpi-card">
+        <div class="kpi-header">
+            <h3><i class="fas fa-exclamation-triangle"></i> Просроченные заявки</h3>
+        </div>
+        <div class="kpi-body">
+            <div class="kpi-value">{{ overdue_count }}</div>
+            <div class="kpi-trend {% if overdue_count == 0 %}trend-positive{% else %}trend-negative{% endif %}">
+                {% if overdue_count == 0 %}
+                <i class="fas fa-check-circle"></i> Отличный результат
+                {% else %}
+                <i class="fas fa-exclamation-circle"></i> Требует внимания
+                {% endif %}
+            </div>
+        </div>
+        <div class="kpi-footer">
+            <small>Целевой показатель: 0</small>
+        </div>
+    </div>
+    
+    <div class="kpi-card">
+        <div class="kpi-header">
+            <h3><i class="fas fa-calendar-plus"></i> Заявки с продлением</h3>
+        </div>
+        <div class="kpi-body">
+            <div class="kpi-value">{{ extended_count }}</div>
+            <div class="kpi-trend {% if extended_count <= 3 %}trend-positive{% else %}trend-negative{% endif %}">
+                {% if extended_count <= 3 %}
+                <i class="fas fa-check-circle"></i> В пределах нормы
+                {% else %}
+                <i class="fas fa-exclamation-circle"></i> Много продлений
+                {% endif %}
+            </div>
+        </div>
+        <div class="kpi-footer">
+            <small>Допустимо: ≤ 3 в месяц</small>
+        </div>
+    </div>
+    
+    <div class="kpi-card">
+        <div class="kpi-header">
+            <h3><i class="fas fa-comments"></i> Проблемные заявки</h3>
+        </div>
+        <div class="kpi-body">
+            <div class="kpi-value">{{ problem_count }}</div>
+            <div class="kpi-trend {% if problem_count <= 5 %}trend-positive{% else %}trend-negative{% endif %}">
+                {% if problem_count <= 5 %}
+                <i class="fas fa-check-circle"></i> Хороший уровень
+                {% else %}
+                <i class="fas fa-exclamation-circle"></i> Требует анализа
+                {% endif %}
+            </div>
+        </div>
+        <div class="kpi-footer">
+            <small>Допустимо: ≤ 5 одновременно</small>
+        </div>
+    </div>
+</div>
+
+<!-- Мастера, чаще всего требующие помощи -->
+<div class="section-card">
+    <div class="section-header">
+        <h2><i class="fas fa-user-md"></i> Мастера, чаще всего требующие помощи</h2>
+        <p>Анализ запросов на консультацию и привлечение дополнительных специалистов</p>
+    </div>
+    
+    {% if masters_needing_help %}
+    <div class="help-table">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Мастер</th>
+                    <th>Запросов помощи</th>
+                    <th>Уровень сложности</th>
+                    <th>Рекомендации</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for master in masters_needing_help %}
+                <tr>
+                    <td>
+                        <div class="master-info">
+                            <strong>{{ master.fio }}</strong>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="help-count">
+                            <span class="badge {% if master.help_requests > 5 %}badge-danger{% elif master.help_requests > 3 %}badge-warning{% else %}badge-info{% endif %}">
+                                {{ master.help_requests }}
+                            </span>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="complexity-level">
+                            {% if master.help_requests > 5 %}
+                            <span class="level-high">Высокий</span>
+                            {% elif master.help_requests > 3 %}
+                            <span class="level-medium">Средний</span>
+                            {% else %}
+                            <span class="level-low">Низкий</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td>
+                        <div class="recommendations">
+                            {% if master.help_requests > 5 %}
+                            <span class="recommendation urgent">Требуется дополнительное обучение</span>
+                            {% elif master.help_requests > 3 %}
+                            <span class="recommendation warning">Рекомендуются парные работы</span>
+                            {% else %}
+                            <span class="recommendation info">Периодический контроль</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <div class="help-analysis">
+        <h3><i class="fas fa-chart-pie"></i> Анализ ситуации</h3>
+        <div class="analysis-grid">
+            <div class="analysis-item">
+                <h4>Причины частых запросов помощи:</h4>
+                <ul>
+                    <li>Сложное оборудование</li>
+                    <li>Недостаток опыта</li>
+                    <li>Необходимость специального инструмента</li>
+                    <li>Отсутствие документации</li>
+                </ul>
+            </div>
+            
+            <div class="analysis-item">
+                <h4>Рекомендуемые действия:</h4>
+                <ul>
+                    <li>Организовать обучение</li>
+                    <li>Создать базу знаний</li>
+                    <li>Приобрести необходимый инструмент</li>
+                    <li>Назначить наставника</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    {% else %}
+    <div class="empty-section">
+        <i class="fas fa-check-circle fa-3x"></i>
+        <h3>Отличные показатели!</h3>
+        <p>Мастера успешно справляются с работой без дополнительной помощи</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Анализ качества по месяцам -->
+<div class="section-card">
+    <div class="section-header">
+        <h2><i class="fas fa-calendar-alt"></i> Динамика качества по месяцам</h2>
+        <p>Тренды изменения ключевых показателей качества</p>
+    </div>
+    
+    <div class="trends-grid">
+        <div class="trend-card">
+            <div class="trend-header">
+                <h4>Среднее время выполнения</h4>
+            </div>
+            <div class="trend-body">
+                <div class="trend-chart">
+                    <!-- Здесь мог бы быть график -->
+                    <div class="chart-placeholder">
+                        <p>График динамики среднего времени выполнения заявок</p>
+                        <div class="chart-bars">
+                            <div class="bar" style="height: 60%; background: #28a745;" title="Янв: 4.2 дня"></div>
+                            <div class="bar" style="height: 70%; background: #ffc107;" title="Фев: 4.9 дня"></div>
+                            <div class="bar" style="height: 65%; background: #28a745;" title="Мар: 4.5 дня"></div>
+                            <div class="bar" style="height: 80%; background: #dc3545;" title="Апр: 5.6 дней"></div>
+                            <div class="bar" style="height: 75%; background: #ffc107;" title="Май: 5.2 дня"></div>
+                            <div class="bar" style="height: 60%; background: #28a745;" title="Июн: 4.2 дня"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="trend-footer">
+                <span class="trend-indicator trend-positive">
+                    <i class="fas fa-arrow-down"></i> Улучшение на 0.8 дня
+                </span>
+            </div>
+        </div>
+        
+        <div class="trend-card">
+            <div class="trend-header">
+                <h4>Количество просроченных</h4>
+            </div>
+            <div class="trend-body">
+                <div class="trend-chart">
+                    <div class="chart-placeholder">
+                        <p>График количества просроченных заявок</p>
+                        <div class="chart-bars">
+                            <div class="bar" style="height: 30%; background: #28a745;" title="Янв: 2"></div>
+                            <div class="bar" style="height: 40%; background: #ffc107;" title="Фев: 3"></div>
+                            <div class="bar" style="height: 60%; background: #dc3545;" title="Мар: 5"></div>
+                            <div class="bar" style="height: 50%; background: #ffc107;" title="Апр: 4"></div>
+                            <div class="bar" style="height: 40%; background: #ffc107;" title="Май: 3"></div>
+                            <div class="bar" style="height: 20%; background: #28a745;" title="Июн: 1"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="trend-footer">
+                <span class="trend-indicator trend-positive">
+                    <i class="fas fa-arrow-down"></i> Уменьшение на 4
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Рекомендации по улучшению качества -->
+<div class="section-card">
+    <div class="section-header">
+        <h2><i class="fas fa-lightbulb"></i> Рекомендации по улучшению качества</h2>
+        <p>Конкретные действия для повышения эффективности работы</p>
+    </div>
+    
+    <div class="recommendations-grid">
+        <div class="recommendation-card">
+            <div class="recommendation-icon">
+                <i class="fas fa-graduation-cap"></i>
+            </div>
+            <div class="recommendation-content">
+                <h4>Обучение персонала</h4>
+                <ul>
+                    <li>Провести тренинг по сложным видам ремонта</li>
+                    <li>Организовать обмен опытом между мастерами</li>
+                    <li>Пригласить экспертов от производителей</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="recommendation-card">
+            <div class="recommendation-icon">
+                <i class="fas fa-tools"></i>
+            </div>
+            <div class="recommendation-content">
+                <h4>Оснащение инструментом</h4>
+                <ul>
+                    <li>Приобрести специализированный инструмент</li>
+                    <li>Создать запас часто используемых запчастей</li>
+                    <li>Обновить диагностическое оборудование</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="recommendation-card">
+            <div class="recommendation-icon">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <div class="recommendation-content">
+                <h4>Оптимизация процессов</h4>
+                <ul>
+                    <li>Внедрить систему приоритетов заявок</li>
+                    <li>Установить реалистичные сроки выполнения</li>
+                    <li>Автоматизировать уведомления клиентов</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="recommendation-card">
+            <div class="recommendation-icon">
+                <i class="fas fa-award"></i>
+            </div>
+            <div class="recommendation-content">
+                <h4>Мотивация персонала</h4>
+                <ul>
+                    <li>Ввести бонусы за своевременное выполнение</li>
+                    <li>Отмечать лучших мастеров месяца</li>
+                    <li>Учитывать отзывы клиентов в оценке работы</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Отчет о качестве -->
+<div class="report-section">
+    <h2><i class="fas fa-file-alt"></i> Сформировать отчет о качестве</h2>
+    <p>Создайте подробный отчет для руководства</p>
+    
+    <div class="report-options">
+        <form class="report-form">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="period">Период отчета:</label>
+                    <select id="period" class="form-control">
+                        <option value="month">За последний месяц</option>
+                        <option value="quarter">За последний квартал</option>
+                        <option value="year">За последний год</option>
+                        <option value="custom">Произвольный период</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="format">Формат отчета:</label>
+                    <select id="format" class="form-control">
+                        <option value="pdf">PDF документ</option>
+                        <option value="excel">Excel таблица</option>
+                        <option value="presentation">Презентация</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="email">Отправить на email:</label>
+                <input type="email" id="email" class="form-control" placeholder="email@example.com">
+            </div>
+            
+            <div class="form-actions">
+                <button type="button" class="btn btn-primary" onclick="generateQualityReport()">
+                    <i class="fas fa-file-download"></i> Сформировать отчет
+                </button>
+                
+                <button type="button" class="btn btn-secondary" onclick="printQualityReport()">
+                    <i class="fas fa-print"></i> Печать
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.page-header {
+    text-align: center;
+    margin-bottom: 2rem;
+    padding: 2rem;
+    background: linear-gradient(135deg, #4b6cb7 0%, #182848 100%);
+    color: white;
+    border-radius: 10px;
+}
+
+.page-header h1 {
+    margin: 0 0 0.5rem 0;
+    font-size: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.page-subtitle {
+    margin: 0;
+    font-size: 1.1rem;
+    opacity: 0.9;
+}
+
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.kpi-card {
+    background: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    transition: transform 0.3s;
+}
+
+.kpi-card:hover {
+    transform: translateY(-5px);
+}
+
+.kpi-header h3 {
+    margin: 0 0 1rem 0;
+    font-size: 1rem;
+    color: #495057;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.kpi-body {
+    text-align: center;
+    margin-bottom: 1rem;
+}
+
+.kpi-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #495057;
+    margin-bottom: 0.5rem;
+}
+
+.kpi-trend {
+    font-size: 0.9rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.trend-positive {
+    color: #28a745;
+}
+
+.trend-negative {
+    color: #dc3545;
+}
+
+.kpi-footer {
+    text-align: center;
+    padding-top: 1rem;
+    border-top: 1px solid #e9ecef;
+}
+
+.kpi-footer small {
+    color: #6c757d;
+    font-size: 0.8rem;
+}
+
+.section-card {
+    background: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.section-header {
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.section-header h2 {
+    margin: 0 0 0.5rem 0;
+    color: #495057;
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.section-header p {
+    margin: 0;
+    color: #6c757d;
+}
+
+.help-table {
+    overflow-x: auto;
+    margin-bottom: 1.5rem;
+}
+
+.master-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.badge-danger {
+    background: #dc3545;
+    color: white;
+}
+
+.badge-warning {
+    background: #ffc107;
+    color: #212529;
+}
+
+.badge-info {
+    background: #17a2b8;
+    color: white;
+}
+
+.complexity-level .level-high {
+    color: #dc3545;
+    font-weight: 600;
+}
+
+.complexity-level .level-medium {
+    color: #ffc107;
+    font-weight: 600;
+}
+
+.complexity-level .level-low {
+    color: #28a745;
+    font-weight: 600;
+}
+
+.recommendation {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+}
+
+.recommendation.urgent {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.recommendation.warning {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+}
+
+.recommendation.info {
+    background: #d1ecf1;
+    color: #0c5460;
+    border: 1px solid #bee5eb;
+}
+
+.help-analysis {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.help-analysis h3 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    color: #495057;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.analysis-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.analysis-item h4 {
+    margin: 0 0 0.75rem 0;
+    color: #495057;
+    font-size: 1rem;
+}
+
+.analysis-item ul {
+    margin: 0;
+    padding-left: 1.5rem;
+}
+
+.analysis-item li {
+    margin-bottom: 0.5rem;
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+.empty-section {
+    text-align: center;
+    padding: 3rem;
+    color: #6c757d;
+}
+
+.empty-section i {
+    margin-bottom: 1rem;
+    color: #28a745;
+}
+
+.empty-section h3 {
+    margin: 0 0 0.5rem 0;
+    color: #495057;
+}
+
+.empty-section p {
+    margin: 0;
+}
+
+.trends-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.trend-card {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 1.5rem;
+    border: 1px solid #e9ecef;
+}
+
+.trend-header h4 {
+    margin: 0 0 1rem 0;
+    color: #495057;
+    text-align: center;
+}
+
+.chart-placeholder {
+    text-align: center;
+    padding: 1rem;
+    background: white;
+    border-radius: 6px;
+    border: 1px solid #dee2e6;
+}
+
+.chart-placeholder p {
+    margin: 0 0 1rem 0;
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+.chart-bars {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 0.5rem;
+    height: 150px;
+    padding: 0 1rem;
+}
+
+.bar {
+    width: 30px;
+    border-radius: 4px 4px 0 0;
+    transition: height 0.3s;
+}
+
+.trend-footer {
+    text-align: center;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e9ecef;
+}
+
+.trend-indicator {
+    font-size: 0.9rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.recommendations-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.recommendation-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1.5rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #4b6cb7;
+}
+
+.recommendation-icon {
+    width: 50px;
+    height: 50px;
+    background: #4b6cb7;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.recommendation-content h4 {
+    margin: 0 0 0.75rem 0;
+    color: #495057;
+    font-size: 1.1rem;
+}
+
+.recommendation-content ul {
+    margin: 0;
+    padding-left: 1.5rem;
+}
+
+.recommendation-content li {
+    margin-bottom: 0.5rem;
+    color: #6c757d;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.report-section {
+    background: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.report-section h2 {
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    color: #495057;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.report-section p {
+    margin: 0 0 1.5rem 0;
+    color: #6c757d;
+}
+
+.report-form {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: #495057;
+}
+
+.form-control {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 1rem;
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+@media (max-width: 768px) {
+    .kpi-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .trends-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .recommendations-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+    
+    .btn {
+        width: 100%;
+    }
+}
+</style>
+
+<script>
+function generateQualityReport() {
+    const period = document.getElementById('period').value;
+    const format = document.getElementById('format').value;
+    const email = document.getElementById('email').value;
+    
+    let message = `Формируется отчет о качестве за период: ${period}, в формате: ${format}`;
+    if (email) {
+        message += `\nОтчет будет отправлен на email: ${email}`;
+    }
+    
+    alert(message);
+    // В реальном приложении здесь будет AJAX запрос на генерацию отчета
+}
+
+function printQualityReport() {
+    window.print();
+}
+
+// Автоматическое обновление статистики каждые 10 минут
+setTimeout(function() {
+    location.reload();
+}, 10 * 60 * 1000);
+</script>
+{% endblock %}

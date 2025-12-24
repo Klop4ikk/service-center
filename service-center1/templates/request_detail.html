@@ -1,0 +1,664 @@
+{% extends "layout.html" %}
+
+{% block title %}Заявка #{{ request.id }} - {{ request.home_tech_type }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="header-left">
+        <h1>
+            <i class="fas fa-file-alt"></i> Заявка #{{ request.id }}
+            <span class="header-subtitle">{{ request.home_tech_type }} {{ request.home_tech_model }}</span>
+        </h1>
+        <div class="request-meta">
+            <span class="meta-item">
+                <i class="fas fa-calendar"></i> {{ request.start_date }}
+            </span>
+            <span class="meta-item">
+                <i class="fas fa-user"></i> {{ request.client_fio }}
+            </span>
+            <span class="meta-item">
+                <i class="fas fa-hashtag"></i> ID: {{ request.id }}
+            </span>
+        </div>
+    </div>
+    
+    <div class="header-right">
+        <a href="{{ url_for('index') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Назад
+        </a>
+        
+        {% if g.user.type in ['Оператор', 'admin', 'Менеджер'] or 
+              (g.user.type == 'Заказчик' and request.request_status == 'Новая заявка') or
+              (g.user.type == 'Мастер' and request.master_id == g.user.id) %}
+        <a href="{{ url_for('edit_request', request_id=request.id) }}" class="btn btn-primary">
+            <i class="fas fa-edit"></i> Редактировать
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="detail-container">
+    <!-- Основная информация о заявке -->
+    <div class="detail-card">
+        <div class="detail-header">
+            <h2><i class="fas fa-info-circle"></i> Основная информация</h2>
+            <span class="status-badge-large status-{{ request.request_status|lower|replace(' ', '-') }}">
+                {% if request.request_status == 'Новая заявка' %}
+                <i class="fas fa-clock"></i>
+                {% elif request.request_status == 'В процессе ремонта' %}
+                <i class="fas fa-wrench"></i>
+                {% elif request.request_status == 'Ожидание запчастей' %}
+                <i class="fas fa-box-open"></i>
+                {% elif request.request_status == 'Готова к выдаче' %}
+                <i class="fas fa-check-circle"></i>
+                {% endif %}
+                {{ request.request_status }}
+            </span>
+        </div>
+        
+        <div class="detail-body">
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">
+                        <i class="fas fa-tv"></i> Вид техники
+                    </div>
+                    <div class="info-value">{{ request.home_tech_type }}</div>
+                </div>
+                
+                <div class="info-item">
+                    <div class="info-label">
+                        <i class="fas fa-barcode"></i> Модель
+                    </div>
+                    <div class="info-value">{{ request.home_tech_model }}</div>
+                </div>
+                
+                <div class="info-item">
+                    <div class="info-label">
+                        <i class="fas fa-user"></i> Клиент
+                    </div>
+                    <div class="info-value">
+                        {{ request.client_fio }}
+                        <small class="text-muted">(Тел: {{ request.client_phone }})</small>
+                    </div>
+                </div>
+                
+                <div class="info-item">
+                    <div class="info-label">
+                        <i class="fas fa-user-cog"></i> Назначенный мастер
+                    </div>
+                    <div class="info-value">
+                        {% if request.master_fio %}
+                        {{ request.master_fio }}
+                        {% else %}
+                        <span class="text-warning">Не назначен</span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="info-item full-width">
+                    <div class="info-label">
+                        <i class="fas fa-exclamation-triangle"></i> Описание проблемы
+                    </div>
+                    <div class="info-value problem-description">
+                        {{ request.problem_description }}
+                    </div>
+                </div>
+                
+                {% if request.repair_parts %}
+                <div class="info-item full-width">
+                    <div class="info-label">
+                        <i class="fas fa-cogs"></i> Запчасти / материалы
+                    </div>
+                    <div class="info-value">
+                        {{ request.repair_parts }}
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if request.completion_date %}
+                <div class="info-item">
+                    <div class="info-label">
+                        <i class="fas fa-calendar-check"></i> Дата завершения
+                    </div>
+                    <div class="info-value">{{ request.completion_date }}</div>
+                </div>
+                {% endif %}
+                
+                {% if total_extension > 0 %}
+                <div class="info-item">
+                    <div class="info-label">
+                        <i class="fas fa-clock"></i> Продление срока
+                    </div>
+                    <div class="info-value">
+                        <span class="text-warning">+{{ total_extension }} дней</span>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Действия с заявкой -->
+    <div class="actions-card">
+        <h3><i class="fas fa-cogs"></i> Действия</h3>
+        
+        <div class="actions-grid">
+            <!-- Изменение статуса -->
+            {% if g.user.type in ['Оператор', 'Мастер', 'admin', 'Менеджер', 'Менеджер по качеству'] %}
+            <div class="action-form">
+                <form method="POST" action="{{ url_for('change_status', request_id=request.id) }}">
+                    <label for="status">Изменить статус:</label>
+                    <div class="form-row">
+                        <select name="status" id="status" class="form-select" required>
+                            <option value="Новая заявка" {% if request.request_status == 'Новая заявка' %}selected{% endif %}>Новая заявка</option>
+                            <option value="В процессе ремонта" {% if request.request_status == 'В процессе ремонта' %}selected{% endif %}>В процессе ремонта</option>
+                            <option value="Ожидание запчастей" {% if request.request_status == 'Ожидание запчастей' %}selected{% endif %}>Ожидание запчастей</option>
+                            <option value="Готова к выдаче" {% if request.request_status == 'Готова к выдаче' %}selected{% endif %}>Готова к выдаче</option>
+                        </select>
+                        <button type="submit" class="btn btn-sm btn-primary">
+                            <i class="fas fa-sync"></i> Обновить
+                        </button>
+                    </div>
+                </form>
+            </div>
+            {% endif %}
+            
+            <!-- Назначение мастера -->
+            {% if g.user.type in ['Оператор', 'admin', 'Менеджер', 'Менеджер по качеству'] and not request.master_id %}
+            <div class="action-form">
+                <form method="POST" action="{{ url_for('assign_master', request_id=request.id) }}">
+                    <label for="master_id">Назначить мастера:</label>
+                    <div class="form-row">
+                        <select name="master_id" id="master_id" class="form-select" required>
+                            <option value="">Выберите мастера</option>
+                            {% for master in masters %}
+                            <option value="{{ master.id }}">{{ master.fio }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="btn btn-sm btn-success">
+                            <i class="fas fa-user-plus"></i> Назначить
+                        </button>
+                    </div>
+                </form>
+            </div>
+            {% endif %}
+            
+            <!-- Обновление запчастей -->
+            {% if g.user.type in ['Мастер', 'Оператор', 'admin', 'Менеджер', 'Менеджер по качесту'] %}
+            <div class="action-form">
+                <form method="POST" action="{{ url_for('update_parts', request_id=request.id) }}">
+                    <label for="repair_parts">Запчасти / материалы:</label>
+                    <div class="form-row">
+                        <input type="text" 
+                               name="repair_parts" 
+                               id="repair_parts" 
+                               placeholder="Укажите запчасти..."
+                               value="{{ request.repair_parts or '' }}"
+                               class="form-input">
+                        <button type="submit" class="btn btn-sm btn-info">
+                            <i class="fas fa-save"></i> Сохранить
+                        </button>
+                    </div>
+                </form>
+            </div>
+            {% endif %}
+            
+            <!-- Привлечение мастера (менеджер по качеству) -->
+            {% if g.user.type in ['Менеджер по качеству', 'admin', 'Мастер'] %}
+            <div class="action-form">
+                <form method="POST" action="{{ url_for('add_master_help', request_id=request.id) }}">
+                    <label for="master_id_help">Привлечь мастера:</label>
+                    <div class="form-row">
+                        <select name="master_id" id="master_id_help" class="form-select" required>
+                            <option value="">Выберите мастера</option>
+                            {% for master in masters %}
+                            <option value="{{ master.id }}">{{ master.fio }}</option>
+                            {% endfor %}
+                        </select>
+                        <input type="text" 
+                               name="reason" 
+                               placeholder="Причина..."
+                               class="form-input">
+                        <button type="submit" class="btn btn-sm btn-warning">
+                            <i class="fas fa-hands-helping"></i> Привлечь
+                        </button>
+                    </div>
+                </form>
+            </div>
+            {% endif %}
+            
+            <!-- QR-код для фидбека -->
+            {% if g.user.type in ['Оператор', 'admin', 'Менеджер по качеству'] %}
+            <div class="action-form">
+                <a href="{{ url_for('generate_feedback_qr', request_id=request.id) }}" 
+                   class="btn btn-info btn-block" 
+                   target="_blank">
+                    <i class="fas fa-qrcode"></i> Скачать QR-код
+                </a>
+                <small class="form-text">Для оценки работы клиентом</small>
+            </div>
+            {% endif %}
+            
+            <!-- Продление срока (менеджер по качеству) -->
+            {% if g.user.type in ['Менеджер по качеству', 'admin'] %}
+            <div class="action-form">
+                <a href="{{ url_for('extend_deadline', request_id=request.id) }}" 
+                   class="btn btn-warning btn-block">
+                    <i class="fas fa-clock"></i> Продлить срок
+                </a>
+                <small class="form-text">При необходимости продлить выполнение</small>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Комментарии -->
+    <div class="comments-card">
+        <div class="comments-header">
+            <h3><i class="fas fa-comments"></i> Комментарии</h3>
+            {% if comments %}
+            <span class="badge">{{ comments|length }}</span>
+            {% endif %}
+        </div>
+        
+        {% if comments %}
+        <div class="comments-list">
+            {% for comment in comments %}
+            <div class="comment-item">
+                <div class="comment-header">
+                    <div class="comment-author">
+                        <i class="fas fa-user"></i>
+                        <strong>{{ comment.master_fio }}</strong>
+                    </div>
+                    <div class="comment-date">
+                        <i class="fas fa-calendar"></i>
+                        {{ comment.created_at|datetime }}
+                    </div>
+                </div>
+                <div class="comment-body">
+                    {{ comment.message }}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-comments">
+            <i class="fas fa-comment-slash fa-2x"></i>
+            <p>Комментариев пока нет</p>
+        </div>
+        {% endif %}
+        
+        <!-- Форма добавления комментария -->
+        {% if g.user.type in ['Мастер', 'Оператор', 'admin', 'Менеджер', 'Менеджер по качеству'] %}
+        <div class="comment-form">
+            <form method="POST" action="{{ url_for('add_comment', request_id=request.id) }}">
+                <div class="form-group">
+                    <label for="message">Добавить комментарий:</label>
+                    <textarea name="message" 
+                              id="message" 
+                              rows="3" 
+                              placeholder="Введите ваш комментарий..."
+                              required></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-paper-plane"></i> Отправить
+                </button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Продления сроков (если есть) -->
+    {% if deadline_extensions %}
+    <div class="extensions-card">
+        <h3><i class="fas fa-history"></i> История продлений сроков</h3>
+        <div class="extensions-list">
+            {% for extension in deadline_extensions %}
+            <div class="extension-item">
+                <div class="extension-header">
+                    <div class="extension-author">
+                        <i class="fas fa-user"></i> {{ extension.extended_by_fio }}
+                    </div>
+                    <div class="extension-date">
+                        <i class="fas fa-calendar"></i> {{ extension.extended_at|datetime }}
+                    </div>
+                </div>
+                <div class="extension-body">
+                    <div class="extension-days">
+                        <i class="fas fa-plus-circle"></i>
+                        <strong>+{{ extension.extra_days }} дней</strong>
+                    </div>
+                    <div class="extension-reason">
+                        <i class="fas fa-comment"></i>
+                        {{ extension.reason }}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.detail-container {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 1.5rem;
+    margin-top: 2rem;
+}
+
+@media (max-width: 992px) {
+    .detail-container {
+        grid-template-columns: 1fr;
+    }
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.header-left h1 {
+    margin: 0 0 0.5rem 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.header-subtitle {
+    font-size: 1rem;
+    font-weight: normal;
+    color: #6c757d;
+}
+
+.request-meta {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.meta-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+.header-right {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.detail-card, .actions-card, .comments-card, .extensions-card {
+    background: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #eee;
+}
+
+.detail-header h2 {
+    margin: 0;
+    font-size: 1.3rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.status-badge-large {
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.status-новая-заявка {
+    background: #e3f2fd;
+    color: #1565c0;
+}
+
+.status-в-процессе-ремонта {
+    background: #fff3e0;
+    color: #ef6c00;
+}
+
+.status-ожидание-запчастей {
+    background: #fff8e1;
+    color: #ff8f00;
+}
+
+.status-готова-к-выдаче {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1.5rem;
+}
+
+.full-width {
+    grid-column: 1 / -1;
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.info-label {
+    font-weight: 600;
+    color: #495057;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.info-value {
+    padding: 0.75rem;
+    background: #f8f9fa;
+    border-radius: 5px;
+    border-left: 3px solid #4b6cb7;
+}
+
+.problem-description {
+    white-space: pre-line;
+    line-height: 1.6;
+}
+
+.actions-card h3, .comments-card h3, .extensions-card h3 {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.actions-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.action-form {
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 5px;
+}
+
+.action-form label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: #495057;
+}
+
+.form-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.form-select, .form-input {
+    flex: 1;
+    padding: 0.5rem;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+}
+
+.btn-sm {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+}
+
+.btn-block {
+    width: 100%;
+    text-align: center;
+}
+
+.comments-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #eee;
+}
+
+.badge {
+    background: #4b6cb7;
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.875rem;
+}
+
+.comments-list {
+    max-height: 400px;
+    overflow-y: auto;
+    margin-bottom: 1.5rem;
+}
+
+.comment-item {
+    padding: 1rem;
+    margin-bottom: 1rem;
+    background: #f8f9fa;
+    border-radius: 5px;
+    border-left: 3px solid #4b6cb7;
+}
+
+.comment-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+    color: #6c757d;
+}
+
+.comment-author {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.comment-date {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.comment-body {
+    white-space: pre-line;
+    line-height: 1.5;
+}
+
+.empty-comments {
+    text-align: center;
+    padding: 2rem;
+    color: #6c757d;
+}
+
+.empty-comments i {
+    margin-bottom: 1rem;
+    color: #dee2e6;
+}
+
+.comment-form {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #eee;
+}
+
+.comment-form textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ced4da;
+    border-radius: 5px;
+    resize: vertical;
+    min-height: 80px;
+}
+
+.extensions-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.extension-item {
+    padding: 1rem;
+    margin-bottom: 1rem;
+    background: #fff8e1;
+    border-radius: 5px;
+    border-left: 3px solid #ffc107;
+}
+
+.extension-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+    color: #856404;
+}
+
+.extension-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.extension-days, .extension-reason {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.text-muted {
+    color: #6c757d !important;
+}
+
+.text-warning {
+    color: #ffc107 !important;
+}
+</style>
+{% endblock %}

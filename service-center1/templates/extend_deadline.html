@@ -1,0 +1,485 @@
+{% extends "layout.html" %}
+
+{% block title %}Продление срока - Заявка #{{ request.id }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-clock"></i> Продление срока выполнения</h1>
+    <a href="{{ url_for('request_detail', request_id=request.id) }}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Назад к заявке
+    </a>
+</div>
+
+<div class="form-container">
+    <div class="request-info">
+        <h3>Информация о заявке</h3>
+        <div class="info-grid">
+            <div class="info-item">
+                <div class="info-label">Номер заявки:</div>
+                <div class="info-value">#{{ request.id }}</div>
+            </div>
+            
+            <div class="info-item">
+                <div class="info-label">Вид техники:</div>
+                <div class="info-value">{{ request.home_tech_type }}</div>
+            </div>
+            
+            <div class="info-item">
+                <div class="info-label">Модель:</div>
+                <div class="info-value">{{ request.home_tech_model }}</div>
+            </div>
+            
+            <div class="info-item">
+                <div class="info-label">Клиент:</div>
+                <div class="info-value">{{ request.client_fio }}</div>
+            </div>
+            
+            <div class="info-item">
+                <div class="info-label">Статус:</div>
+                <div class="info-value">
+                    <span class="status-badge status-{{ request.request_status|lower|replace(' ', '-') }}">
+                        {{ request.request_status }}
+                    </span>
+                </div>
+            </div>
+            
+            <div class="info-item">
+                <div class="info-label">Дата создания:</div>
+                <div class="info-value">{{ request.start_date }}</div>
+            </div>
+            
+            <div class="info-item">
+                <div class="info-label">Прошло дней:</div>
+                <div class="info-value">
+                    {% set days_passed = (now().date() - request.start_date).days %}
+                    <span class="{% if days_passed > 7 %}text-danger{% elif days_passed > 5 %}text-warning{% endif %}">
+                        {{ days_passed }} дней
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <form method="POST" class="extend-form">
+        <div class="form-section">
+            <h3><i class="fas fa-calendar-plus"></i> Продление срока</h3>
+            
+            <div class="form-group">
+                <label for="extra_days">
+                    <i class="fas fa-calendar-day"></i> Количество дней для продления *
+                </label>
+                <div class="input-with-buttons">
+                    <input type="number" 
+                           id="extra_days" 
+                           name="extra_days" 
+                           min="1" 
+                           max="30" 
+                           value="3" 
+                           required
+                           class="form-control">
+                    <div class="quick-buttons">
+                        <button type="button" class="btn btn-sm btn-outline" onclick="setDays(1)">+1 день</button>
+                        <button type="button" class="btn btn-sm btn-outline" onclick="setDays(3)">+3 дня</button>
+                        <button type="button" class="btn btn-sm btn-outline" onclick="setDays(7)">+7 дней</button>
+                        <button type="button" class="btn btn-sm btn-outline" onclick="setDays(14)">+2 недели</button>
+                    </div>
+                </div>
+                <small class="form-text">Укажите количество дополнительных дней для выполнения заявки</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="reason">
+                    <i class="fas fa-comment-medical"></i> Причина продления *
+                </label>
+                <textarea id="reason" 
+                          name="reason" 
+                          rows="4" 
+                          placeholder="Укажите причину продления срока выполнения заявки..."
+                          required></textarea>
+                <small class="form-text">Объясните, почему требуется продление срока</small>
+            </div>
+            
+            <div class="reason-examples">
+                <h4><i class="fas fa-lightbulb"></i> Примеры причин:</h4>
+                <ul>
+                    <li>Ожидание доставки запчастей от поставщика</li>
+                    <li>Сложный ремонт, требующий дополнительного времени</li>
+                    <li>Необходимость в дополнительной диагностике</li>
+                    <li>Ожидание результатов лабораторных испытаний</li>
+                    <li>Необходимость привлечения дополнительного специалиста</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <h3><i class="fas fa-bell"></i> Уведомление клиента</h3>
+            
+            <div class="form-group">
+                <div class="checkbox-group">
+                    <input type="checkbox" id="notify_client" name="notify_client" checked>
+                    <label for="notify_client">
+                        <i class="fas fa-envelope"></i> Уведомить клиента о продлении срока
+                    </label>
+                </div>
+                <small class="form-text">Клиент получит уведомление о продлении срока выполнения заявки</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="notification_message">
+                    <i class="fas fa-comment-dots"></i> Текст уведомления
+                </label>
+                <textarea id="notification_message" 
+                          name="notification_message" 
+                          rows="3"
+                          placeholder="Уважаемый клиент, срок выполнения вашей заявки продлен на [количество] дней в связи с [причина]. Приносим извинения за доставленные неудобства."></textarea>
+                <small class="form-text">Текст уведомления будет отправлен клиенту</small>
+            </div>
+        </div>
+        
+        <div class="preview-section">
+            <h3><i class="fas fa-eye"></i> Предварительный просмотр</h3>
+            
+            <div class="preview-card">
+                <div class="preview-header">
+                    <h4>Информация о продлении</h4>
+                </div>
+                <div class="preview-body">
+                    <p><strong>Заявка:</strong> #{{ request.id }} - {{ request.home_tech_type }}</p>
+                    <p><strong>Будет продлена на:</strong> <span id="preview-days">3</span> дней</p>
+                    <p><strong>Новая дата завершения:</strong> <span id="preview-date">{{ (now().date() + timedelta(days=3)).strftime('%Y-%m-%d') }}</span></p>
+                    <p><strong>Причина:</strong> <span id="preview-reason">Причина не указана</span></p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary btn-lg">
+                <i class="fas fa-check-circle"></i> Подтвердить продление
+            </button>
+            
+            <button type="reset" class="btn btn-secondary">
+                <i class="fas fa-undo"></i> Сбросить форму
+            </button>
+            
+            <a href="{{ url_for('request_detail', request_id=request.id) }}" class="btn btn-outline">
+                <i class="fas fa-times"></i> Отмена
+            </a>
+        </div>
+    </form>
+</div>
+
+<style>
+.form-container {
+    max-width: 900px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 10px;
+    padding: 2rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.request-info {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    border-left: 4px solid #4b6cb7;
+}
+
+.request-info h3 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    color: #495057;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.info-label {
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+
+.info-value {
+    font-weight: 500;
+    color: #495057;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.status-новая-заявка {
+    background: #e3f2fd;
+    color: #1565c0;
+}
+
+.status-в-процессе-ремонта {
+    background: #fff3e0;
+    color: #ef6c00;
+}
+
+.status-ожидание-запчастей {
+    background: #fff8e1;
+    color: #ff8f00;
+}
+
+.status-готова-к-выдаче {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.text-danger {
+    color: #dc3545 !important;
+    font-weight: 600;
+}
+
+.text-warning {
+    color: #ffc107 !important;
+    font-weight: 600;
+}
+
+.form-section {
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid #eee;
+}
+
+.form-section h3 {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    color: #4b6cb7;
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: #495057;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.input-with-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.form-control {
+    width: 200px;
+    padding: 0.75rem;
+    border: 1px solid #ced4da;
+    border-radius: 5px;
+    font-size: 1rem;
+}
+
+.quick-buttons {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.form-group textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ced4da;
+    border-radius: 5px;
+    font-size: 1rem;
+    resize: vertical;
+    min-height: 100px;
+}
+
+.form-group textarea:focus,
+.form-control:focus {
+    outline: none;
+    border-color: #4b6cb7;
+    box-shadow: 0 0 0 3px rgba(75, 108, 183, 0.1);
+}
+
+.form-text {
+    display: block;
+    margin-top: 0.25rem;
+    color: #6c757d;
+    font-size: 0.875rem;
+}
+
+.reason-examples {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-top: 1rem;
+}
+
+.reason-examples h4 {
+    margin-top: 0;
+    margin-bottom: 0.75rem;
+    color: #495057;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.reason-examples ul {
+    margin: 0;
+    padding-left: 1.5rem;
+}
+
+.reason-examples li {
+    margin-bottom: 0.5rem;
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+.checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.checkbox-group input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+}
+
+.preview-section {
+    margin-bottom: 2rem;
+}
+
+.preview-card {
+    background: #f8f9fa;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #dee2e6;
+}
+
+.preview-header {
+    background: #e9ecef;
+    padding: 1rem;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.preview-header h4 {
+    margin: 0;
+    color: #495057;
+}
+
+.preview-body {
+    padding: 1.5rem;
+}
+
+.preview-body p {
+    margin: 0.5rem 0;
+}
+
+.preview-body strong {
+    color: #495057;
+    min-width: 200px;
+    display: inline-block;
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #eee;
+}
+
+.btn-lg {
+    padding: 0.75rem 1.5rem;
+    font-size: 1.1rem;
+}
+
+@media (max-width: 768px) {
+    .page-header {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+    }
+    
+    .info-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .form-control {
+        width: 100%;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+    
+    .btn {
+        width: 100%;
+    }
+}
+</style>
+
+<script>
+function setDays(days) {
+    document.getElementById('extra_days').value = days;
+    updatePreview();
+}
+
+function updatePreview() {
+    const days = parseInt(document.getElementById('extra_days').value) || 3;
+    const reason = document.getElementById('reason').value || 'Причина не указана';
+    
+    document.getElementById('preview-days').textContent = days;
+    document.getElementById('preview-reason').textContent = reason;
+    
+    // Рассчитываем новую дату
+    const today = new Date();
+    const newDate = new Date(today);
+    newDate.setDate(today.getDate() + days);
+    
+    // Форматируем дату
+    const formattedDate = newDate.toISOString().split('T')[0];
+    document.getElementById('preview-date').textContent = formattedDate;
+    
+    // Обновляем текст уведомления
+    const notificationTextarea = document.getElementById('notification_message');
+    if (notificationTextarea && !notificationTextarea.value) {
+        const defaultMessage = `Уважаемый клиент, срок выполнения вашей заявки продлен на ${days} дней в связи с ${reason}. Приносим извинения за доставленные неудобства.`;
+        notificationTextarea.value = defaultMessage;
+    }
+}
+
+// Обновляем предпросмотр при изменении полей
+document.getElementById('extra_days').addEventListener('input', updatePreview);
+document.getElementById('reason').addEventListener('input', updatePreview);
+
+// Инициализируем предпросмотр при загрузке страницы
+document.addEventListener('DOMContentLoaded', updatePreview);
+</script>
+{% endblock %}

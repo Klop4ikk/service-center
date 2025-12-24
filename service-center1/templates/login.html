@@ -1,0 +1,227 @@
+{% extends "layout.html" %}
+
+{% block title %}Вход в систему{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <div class="login-card">
+        <div class="login-header">
+            <h1><i class="fas fa-sign-in-alt"></i> Вход в систему</h1>
+            <p>Система учета заявок на ремонт бытовой техники</p>
+        </div>
+        
+        <div class="login-body">
+            <form method="POST" action="{{ url_for('login') }}">
+                <div class="form-group">
+                    <label for="login">
+                        <i class="fas fa-user"></i> Логин
+                    </label>
+                    <input type="text" 
+                           id="login" 
+                           name="login" 
+                           placeholder="Введите ваш логин" 
+                           required
+                           autofocus>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">
+                        <i class="fas fa-lock"></i> Пароль
+                    </label>
+                    <input type="password" 
+                           id="password" 
+                           name="password" 
+                           placeholder="Введите ваш пароль" 
+                           required>
+                </div>
+                
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary btn-block">
+                        <i class="fas fa-sign-in-alt"></i> Войти
+                    </button>
+                </div>
+                
+                <div class="form-footer">
+                    <p>Нет аккаунта? Обратитесь к администратору</p>
+                </div>
+            </form>
+        </div>
+        
+        <div class="login-footer">
+            <div class="test-accounts">
+                <h3><i class="fas fa-user-secret"></i> Тестовые аккаунты</h3>
+                <div class="accounts-grid">
+                    <div class="account-card">
+                        <h4>Администратор</h4>
+                        <p><strong>Логин:</strong> kasoo</p>
+                        <p><strong>Пароль:</strong> root</p>
+                        <p class="account-desc">Полный доступ ко всем функциям</p>
+                    </div>
+                    
+                    <div class="account-card">
+                        <h4>Оператор</h4>
+                        <p><strong>Логин:</strong> perinaAD</p>
+                        <p><strong>Пароль:</strong> 250519</p>
+                        <p class="account-desc">Управление заявками и пользователями</p>
+                    </div>
+                    
+                    <div class="account-card">
+                        <h4>Мастер</h4>
+                        <p><strong>Логин:</strong> murashov123</p>
+                        <p><strong>Пароль:</strong> qwerty</p>
+                        <p class="account-desc">Ремонт и комментарии к заявкам</p>
+                    </div>
+                    
+                    <div class="account-card">
+                        <h4>Заказчик</h4>
+                        <p><strong>Логин:</strong> login2</p>
+                        <p><strong>Пароль:</strong> pass2</p>
+                        <p class="account-desc">Создание и отслеживание заявок</p>
+                    </div>
+                    
+                    <div class="account-card">
+                        <h4>Менеджер по качеству</h4>
+                        <p><strong>Логин:</strong> quality</p>
+                        <p><strong>Пароль:</strong> quality123</p>
+                        <p class="account-desc">Контроль сроков и качества</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.login-container {
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 1rem;
+}
+
+.login-card {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.login-header {
+    background: linear-gradient(135deg, #4b6cb7 0%, #182848 100%);
+    color: white;
+    padding: 2rem;
+    text-align: center;
+}
+
+.login-header h1 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.8rem;
+}
+
+.login-header p {
+    margin: 0;
+    opacity: 0.9;
+    font-size: 1rem;
+}
+
+.login-body {
+    padding: 2rem;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: #495057;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 1rem;
+    transition: border-color 0.3s;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: #4b6cb7;
+    box-shadow: 0 0 0 3px rgba(75, 108, 183, 0.1);
+}
+
+.btn-block {
+    width: 100%;
+    padding: 0.75rem;
+    font-size: 1.1rem;
+}
+
+.form-footer {
+    text-align: center;
+    margin-top: 1.5rem;
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+.login-footer {
+    background: #f8f9fa;
+    padding: 2rem;
+    border-top: 1px solid #eee;
+}
+
+.test-accounts h3 {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    color: #495057;
+    text-align: center;
+}
+
+.accounts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.account-card {
+    background: white;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 1rem;
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.account-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.account-card h4 {
+    margin: 0 0 1rem 0;
+    color: #4b6cb7;
+    font-size: 1rem;
+    border-bottom: 2px solid #4b6cb7;
+    padding-bottom: 0.5rem;
+}
+
+.account-card p {
+    margin: 0.25rem 0;
+    font-size: 0.9rem;
+}
+
+.account-card strong {
+    color: #495057;
+    min-width: 60px;
+    display: inline-block;
+}
+
+.account-desc {
+    margin-top: 0.5rem !important;
+    font-size: 0.8rem !important;
+    color: #6c757d !important;
+    font-style: italic;
+}
+</style>
+{% endblock %}

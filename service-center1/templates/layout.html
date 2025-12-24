@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Сервисный центр - Ремонт бытовой техники{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Шапка сайта -->
+    <header>
+        <div class="header-container">
+            <div class="logo">
+                <h1><i class="fas fa-tools"></i> Сервисный центр</h1>
+                <p class="tagline">Ремонт бытовой техники</p>
+            </div>
+            
+            <div class="user-info">
+                {% if g.user %}
+                <div class="user-details">
+                    <span class="user-name">{{ g.user.fio }}</span>
+                    <span class="user-role">{{ g.user.type }}</span>
+                </div>
+                <a href="{{ url_for('logout') }}" class="btn btn-logout" title="Выйти">
+                    <i class="fas fa-sign-out-alt"></i> Выйти
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Навигационное меню -->
+        <nav>
+            <ul class="nav-menu">
+                <li><a href="{{ url_for('index') }}" class="{% if request.endpoint == 'index' %}active{% endif %}">
+                    <i class="fas fa-home"></i> Главная
+                </a></li>
+                
+                {% if g.user %}
+                    {% if g.user.type in ['Заказчик', 'Оператор', 'admin', 'Менеджер'] %}
+                    <li><a href="{{ url_for('create_request') }}" class="{% if request.endpoint == 'create_request' %}active{% endif %}">
+                        <i class="fas fa-plus-circle"></i> Новая заявка
+                    </a></li>
+                    {% endif %}
+                    
+                    {% if g.user.type in ['Оператор', 'admin', 'Менеджер'] %}
+                    <li><a href="{{ url_for('masters') }}" class="{% if request.endpoint == 'masters' %}active{% endif %}">
+                        <i class="fas fa-user-cog"></i> Мастера
+                    </a></li>
+                    {% endif %}
+                    
+                    {% if g.user.type in ['Оператор', 'admin', 'Менеджер', 'Менеджер по качеству'] %}
+                    <li><a href="{{ url_for('stats') }}" class="{% if request.endpoint == 'stats' %}active{% endif %}">
+                        <i class="fas fa-chart-bar"></i> Статистика
+                    </a></li>
+                    {% endif %}
+                    
+                    {% if g.user.type in ['Менеджер по качеству', 'admin', 'Менеджер'] %}
+                    <li><a href="{{ url_for('overdue_requests') }}" class="{% if request.endpoint == 'overdue_requests' %}active{% endif %}">
+                        <i class="fas fa-clock"></i> Просроченные
+                    </a></li>
+                    <li><a href="{{ url_for('problem_requests') }}" class="{% if request.endpoint == 'problem_requests' %}active{% endif %}">
+                        <i class="fas fa-exclamation-triangle"></i> Проблемные
+                    </a></li>
+                    <li><a href="{{ url_for('quality_stats') }}" class="{% if request.endpoint == 'quality_stats' %}active{% endif %}">
+                        <i class="fas fa-chart-line"></i> Качество
+                    </a></li>
+                    {% endif %}
+                    
+                    {% if g.user.type in ['Оператор', 'admin', 'Менеджер'] %}
+                    <li><a href="{{ url_for('users') }}" class="{% if request.endpoint == 'users' %}active{% endif %}">
+                        <i class="fas fa-users"></i> Пользователи
+                    </a></li>
+                    {% endif %}
+                {% endif %}
+            </ul>
+        </nav>
+    </header>
+
+    <!-- Основной контент -->
+    <main>
+        <!-- Уведомления -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-container">
+                    {% for category, message in messages %}
+                        <div class="flash flash-{{ category }}">
+                            <button class="flash-close" onclick="this.parentElement.style.display='none'">&times;</button>
+                            {% if category == 'success' %}
+                                <i class="fas fa-check-circle"></i>
+                            {% elif category == 'danger' %}
+                                <i class="fas fa-exclamation-circle"></i>
+                            {% elif category == 'warning' %}
+                                <i class="fas fa-exclamation-triangle"></i>
+                            {% elif category == 'info' %}
+                                <i class="fas fa-info-circle"></i>
+                            {% endif %}
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <!-- Блок контента страницы -->
+        <div class="content">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <!-- Подвал сайта -->
+    <footer>
+        <div class="footer-content">
+            <div class="footer-section">
+                <h3><i class="fas fa-tools"></i> Сервисный центр</h3>
+                <p>Ремонт бытовой техники любой сложности</p>
+                <p>График работы: Пн-Пт 9:00-18:00, Сб 10:00-16:00</p>
+            </div>
+            
+            <div class="footer-section">
+                <h3>Контакты</h3>
+                <p><i class="fas fa-phone"></i> +7 (495) 123-45-67</p>
+                <p><i class="fas fa-envelope"></i> info@service-center.ru</p>
+                <p><i class="fas fa-map-marker-alt"></i> Москва, ул. Примерная, д. 123</p>
+            </div>
+            
+            <div class="footer-section">
+                <h3>Быстрые ссылки</h3>
+                <ul>
+                    <li><a href="{{ url_for('index') }}">Главная</a></li>
+                    {% if g.user %}
+                    <li><a href="{{ url_for('create_request') }}">Создать заявку</a></li>
+                    {% endif %}
+                    <li><a href="{{ url_for('login') }}">Вход в систему</a></li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="footer-bottom">
+            <p>&copy; 2023 Сервисный центр "БытСервис". Все права защищены.</p>
+            <p class="version">Версия 1.0.0</p>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script>
+        // Автоматическое скрытие уведомлений через 5 секунд
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(function() {
+                var flashes = document.querySelectorAll('.flash');
+                flashes.forEach(function(flash) {
+                    flash.style.opacity = '0';
+                    setTimeout(function() {
+                        flash.style.display = 'none';
+                    }, 500);
+                });
+            }, 5000);
+        });
+
+        // Подтверждение удаления
+        function confirmDelete(message) {
+            return confirm(message || 'Вы уверены, что хотите удалить этот элемент?');
+        }
+
+        // Обновление времени на странице
+        function updateTime() {
+            var now = new Date();
+            var timeString = now.toLocaleTimeString('ru-RU');
+            var dateString = now.toLocaleDateString('ru-RU', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            
+            var timeElement = document.getElementById('current-time');
+            if (timeElement) {
+                timeElement.textContent = dateString + ' ' + timeString;
+            }
+        }
+
+        // Запускаем обновление времени каждую секунду
+        setInterval(updateTime, 1000);
+        updateTime();
+    </script>
+</body>
+</html>

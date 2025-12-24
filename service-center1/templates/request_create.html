@@ -1,0 +1,283 @@
+{% extends "layout.html" %}
+
+{% block title %}Создание заявки{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-plus-circle"></i> Создание новой заявки</h1>
+    <a href="{{ url_for('index') }}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Назад к списку
+    </a>
+</div>
+
+<div class="form-container">
+    <form method="POST" class="request-form">
+        <div class="form-section">
+            <h3><i class="fas fa-info-circle"></i> Информация о технике</h3>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="home_tech_type">
+                        <i class="fas fa-tv"></i> Вид бытовой техники *
+                    </label>
+                    <input type="text" 
+                           id="home_tech_type" 
+                           name="home_tech_type" 
+                           placeholder="Например: Холодильник, Стиральная машина, Фен" 
+                           required
+                           value="{{ request.form.home_tech_type or '' }}">
+                    <small class="form-text">Укажите тип ремонтируемой техники</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="home_tech_model">
+                        <i class="fas fa-barcode"></i> Модель техники *
+                    </label>
+                    <input type="text" 
+                           id="home_tech_model" 
+                           name="home_tech_model" 
+                           placeholder="Например: Indesit DS 316 W, Redmond RT-437" 
+                           required
+                           value="{{ request.form.home_tech_model or '' }}">
+                    <small class="form-text">Модель и производитель оборудования</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <h3><i class="fas fa-exclamation-triangle"></i> Описание проблемы</h3>
+            
+            <div class="form-group">
+                <label for="problem_description">
+                    <i class="fas fa-comment-medical"></i> Подробное описание проблемы *
+                </label>
+                <textarea id="problem_description" 
+                          name="problem_description" 
+                          rows="5" 
+                          placeholder="Опишите подробно, что случилось с техникой, когда это произошло, какие есть симптомы неисправности..." 
+                          required>{{ request.form.problem_description or '' }}</textarea>
+                <small class="form-text">Чем подробнее описание, тем быстрее мастер определит проблему</small>
+            </div>
+        </div>
+        
+        {% if g.user.type in ['Оператор', 'admin', 'Менеджер'] and clients %}
+        <div class="form-section">
+            <h3><i class="fas fa-user"></i> Выбор клиента</h3>
+            
+            <div class="form-group">
+                <label for="client_id">
+                    <i class="fas fa-users"></i> Клиент
+                </label>
+                <select id="client_id" name="client_id" class="form-select">
+                    <option value="">-- Выберите клиента --</option>
+                    {% for client in clients %}
+                    <option value="{{ client.id }}" 
+                            {% if request.form.client_id == client.id|string %}selected{% endif %}>
+                        {{ client.fio }} ({{ client.phone }})
+                    </option>
+                    {% endfor %}
+                </select>
+                <small class="form-text">Выберите клиента для которого создается заявка</small>
+            </div>
+        </div>
+        {% endif %}
+        
+        <div class="form-section">
+            <h3><i class="fas fa-cogs"></i> Дополнительная информация</h3>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="urgency">
+                        <i class="fas fa-clock"></i> Срочность
+                    </label>
+                    <select id="urgency" name="urgency" class="form-select">
+                        <option value="normal">Обычная</option>
+                        <option value="high">Высокая</option>
+                        <option value="urgent">Срочная</option>
+                    </select>
+                    <small class="form-text">Укажите срочность выполнения ремонта</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="warranty">
+                        <i class="fas fa-shield-alt"></i> Гарантия
+                    </label>
+                    <select id="warranty" name="warranty" class="form-select">
+                        <option value="yes">На гарантии</option>
+                        <option value="no" selected>Не на гарантии</option>
+                    </select>
+                    <small class="form-text">Находится ли техника на гарантии</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary btn-lg">
+                <i class="fas fa-save"></i> Создать заявку
+            </button>
+            
+            <button type="reset" class="btn btn-secondary">
+                <i class="fas fa-undo"></i> Очистить форму
+            </button>
+            
+            <a href="{{ url_for('index') }}" class="btn btn-outline">
+                <i class="fas fa-times"></i> Отмена
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Подсказки для заполнения формы -->
+<div class="form-tips">
+    <h3><i class="fas fa-lightbulb"></i> Советы по заполнению</h3>
+    <ul>
+        <li><strong>Вид техники:</strong> Указывайте точно, например "Холодильник", "Стиральная машина", "Пылесос"</li>
+        <li><strong>Модель:</strong> Укажите полное название модели и производителя, если известно</li>
+        <li><strong>Проблема:</strong> Опишите что именно не работает, когда начались проблемы, были ли попытки ремонта</li>
+        <li><strong>Срочность:</strong> Отметьте "Срочная" если техника необходима в ежедневном использовании</li>
+    </ul>
+</div>
+
+<style>
+.form-container {
+    max-width: 900px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 10px;
+    padding: 2rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.form-section {
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid #eee;
+}
+
+.form-section:last-child {
+    border-bottom: none;
+}
+
+.form-section h3 {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    color: #4b6cb7;
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: #495057;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ced4da;
+    border-radius: 5px;
+    font-size: 1rem;
+    transition: all 0.3s;
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: #4b6cb7;
+    box-shadow: 0 0 0 3px rgba(75, 108, 183, 0.1);
+}
+
+.form-group textarea {
+    min-height: 120px;
+    resize: vertical;
+}
+
+.form-text {
+    display: block;
+    margin-top: 0.25rem;
+    color: #6c757d;
+    font-size: 0.875rem;
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #eee;
+}
+
+.btn-lg {
+    padding: 0.75rem 1.5rem;
+    font-size: 1.1rem;
+}
+
+.form-tips {
+    max-width: 900px;
+    margin: 2rem auto 0;
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 1.5rem;
+    border-left: 4px solid #17a2b8;
+}
+
+.form-tips h3 {
+    margin-top: 0;
+    color: #17a2b8;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.form-tips ul {
+    margin: 1rem 0 0 0;
+    padding-left: 1.5rem;
+}
+
+.form-tips li {
+    margin-bottom: 0.5rem;
+    line-height: 1.5;
+}
+
+@media (max-width: 768px) {
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+    
+    .btn {
+        width: 100%;
+    }
+}
+</style>
+{% endblock %}

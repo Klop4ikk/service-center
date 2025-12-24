@@ -1,0 +1,490 @@
+{% extends "layout.html" %}
+
+{% block title %}Просроченные заявки{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-clock"></i> Просроченные заявки</h1>
+    <div class="header-stats">
+        <span class="stat-badge stat-danger">
+            <i class="fas fa-exclamation-circle"></i>
+            Всего: {{ requests|length }}
+        </span>
+        <span class="stat-badge stat-warning">
+            <i class="fas fa-calendar-times"></i>
+            > 7 дней: {{ requests|selectattr('days_passed', 'gt', 7)|list|length }}
+        </span>
+        <span class="stat-badge stat-info">
+            <i class="fas fa-calendar-week"></i>
+            > 14 дней: {{ requests|selectattr('days_passed', 'gt', 14)|list|length }}
+        </span>
+    </div>
+</div>
+
+{% if requests %}
+<div class="table-container">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>№</th>
+                <th>Дней в работе</th>
+                <th>Дата создания</th>
+                <th>Вид техники</th>
+                <th>Модель</th>
+                <th>Проблема</th>
+                <th>Статус</th>
+                <th>Клиент</th>
+                <th>Мастер</th>
+                <th>Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for request in requests %}
+            <tr class="{% if request.days_passed > 14 %}row-critical{% elif request.days_passed > 7 %}row-warning{% else %}row-info{% endif %}">
+                <td class="text-center">
+                    <strong>#{{ request.id }}</strong>
+                </td>
+                <td>
+                    <span class="days-badge {% if request.days_passed > 14 %}badge-critical{% elif request.days_passed > 7 %}badge-warning{% else %}badge-info{% endif %}">
+                        {{ request.days_passed|int }} дней
+                    </span>
+                </td>
+                <td>{{ request.start_date }}</td>
+                <td>{{ request.home_tech_type }}</td>
+                <td>{{ request.home_tech_model }}</td>
+                <td class="problem-cell">
+                    <div class="problem-text">{{ request.problem_description[:80] }}{% if request.problem_description|length > 80 %}...{% endif %}</div>
+                </td>
+                <td>
+                    <span class="status-badge status-{{ request.request_status|lower|replace(' ', '-') }}">
+                        {% if request.request_status == 'В процессе ремонта' %}
+                        <i class="fas fa-wrench"></i>
+                        {% elif request.request_status == 'Ожидание запчастей' %}
+                        <i class="fas fa-box-open"></i>
+                        {% endif %}
+                        {{ request.request_status }}
+                    </span>
+                </td>
+                <td>{{ request.client_fio }}</td>
+                <td>
+                    {% if request.master_fio %}
+                    <span class="master-name">{{ request.master_fio }}</span>
+                    {% else %}
+                    <span class="text-muted">Не назначен</span>
+                    {% endif %}
+                </td>
+                <td class="actions-cell">
+                    <div class="action-buttons">
+                        <a href="{{ url_for('request_detail', request_id=request.id) }}" 
+                           class="btn btn-sm btn-view" title="Просмотр">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                        
+                        <a href="{{ url_for('extend_deadline', request_id=request.id) }}" 
+                           class="btn btn-sm btn-warning" title="Продлить срок">
+                            <i class="fas fa-clock"></i>
+                        </a>
+                        
+                        {% if g.user.type in ['Оператор', 'admin', 'Менеджер', 'Менеджер по качеству'] %}
+                        <a href="{{ url_for('edit_request', request_id=request.id) }}" 
+                           class="btn btn-sm btn-edit" title="Редактировать">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Фильтры -->
+<div class="filters">
+    <h3><i class="fas fa-filter"></i> Фильтры просроченных заявок</h3>
+    <div class="filter-buttons">
+        <a href="{{ url_for('overdue_requests') }}" 
+           class="filter-btn {% if not request.args.get('days') %}active{% endif %}">
+            Все просроченные
+        </a>
+        <a href="{{ url_for('overdue_requests') }}?days=7" 
+           class="filter-btn filter-warning {% if request.args.get('days') == '7' %}active{% endif %}">
+            > 7 дней
+        </a>
+        <a href="{{ url_for('overdue_requests') }}?days=14" 
+           class="filter-btn filter-critical {% if request.args.get('days') == '14' %}active{% endif %}">
+            > 14 дней
+        </a>
+        <a href="{{ url_for('overdue_requests') }}?days=30" 
+           class="filter-btn filter-danger {% if request.args.get('days') == '30' %}active{% endif %}">
+            > 30 дней
+        </a>
+    </div>
+</div>
+
+<!-- Рекомендации -->
+<div class="recommendations">
+    <h3><i class="fas fa-lightbulb"></i> Рекомендации по работе с просроченными заявками</h3>
+    <div class="recommendations-grid">
+        <div class="recommendation-card">
+            <div class="recommendation-icon">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="recommendation-content">
+                <h4>Срочно продлить срок</h4>
+                <p>Заявки, находящиеся в работе более 14 дней, требуют срочного продления срока</p>
+            </div>
+        </div>
+        
+        <div class="recommendation-card">
+            <div class="recommendation-icon">
+                <i class="fas fa-user-plus"></i>
+            </div>
+            <div class="recommendation-content">
+                <h4>Привлечь дополнительных мастеров</h4>
+                <p>Для сложных заявок рассмотрите возможность привлечения дополнительных специалистов</p>
+            </div>
+        </div>
+        
+        <div class="recommendation-card">
+            <div class="recommendation-icon">
+                <i class="fas fa-phone"></i>
+            </div>
+            <div class="recommendation-content">
+                <h4>Связаться с клиентом</h4>
+                <p>Проинформируйте клиента о причинах задержки и новых сроках выполнения</p>
+            </div>
+        </div>
+        
+        <div class="recommendation-card">
+            <div class="recommendation-icon">
+                <i class="fas fa-tools"></i>
+            </div>
+            <div class="recommendation-content">
+                <h4>Перераспределить нагрузку</h4>
+                <p>Рассмотрите возможность передачи заявки другому мастеру</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% else %}
+<div class="empty-state">
+    <div class="empty-icon">
+        <i class="fas fa-check-circle fa-4x"></i>
+    </div>
+    <h2>Нет просроченных заявок</h2>
+    <p>Отличная работа! Все заявки выполняются в установленные сроки.</p>
+    <a href="{{ url_for('index') }}" class="btn btn-primary">
+        <i class="fas fa-arrow-left"></i> Вернуться к списку заявок
+    </a>
+</div>
+{% endif %}
+
+<!-- Экспорт -->
+{% if requests and g.user.type in ['admin', 'Менеджер по качеству'] %}
+<div class="export-section">
+    <h3><i class="fas fa-file-export"></i> Экспорт отчета</h3>
+    <div class="export-buttons">
+        <button class="btn btn-primary" onclick="exportOverdueToPDF()">
+            <i class="fas fa-file-pdf"></i> Экспорт в PDF
+        </button>
+        <button class="btn btn-success" onclick="exportOverdueToExcel()">
+            <i class="fas fa-file-excel"></i> Экспорт в Excel
+        </button>
+        <button class="btn btn-info" onclick="printOverdueReport()">
+            <i class="fas fa-print"></i> Печать отчета
+        </button>
+    </div>
+</div>
+{% endif %}
+
+<style>
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.header-stats {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.stat-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: white;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.stat-danger {
+    border-left: 4px solid #dc3545;
+}
+
+.stat-warning {
+    border-left: 4px solid #ffc107;
+}
+
+.stat-info {
+    border-left: 4px solid #17a2b8;
+}
+
+.row-critical {
+    background: linear-gradient(90deg, rgba(220,53,69,0.05) 0%, rgba(220,53,69,0.02) 100%) !important;
+}
+
+.row-warning {
+    background: linear-gradient(90deg, rgba(255,193,7,0.05) 0%, rgba(255,193,7,0.02) 100%) !important;
+}
+
+.row-info {
+    background: linear-gradient(90deg, rgba(23,162,184,0.05) 0%, rgba(23,162,184,0.02) 100%) !important;
+}
+
+.days-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.badge-critical {
+    background: #dc3545;
+    color: white;
+}
+
+.badge-warning {
+    background: #ffc107;
+    color: #212529;
+}
+
+.badge-info {
+    background: #17a2b8;
+    color: white;
+}
+
+.filters {
+    background: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.filters h3 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    color: #495057;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.filter-buttons {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.filter-btn {
+    padding: 0.5rem 1rem;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    background: white;
+    color: #495057;
+    text-decoration: none;
+    transition: all 0.3s;
+}
+
+.filter-btn:hover {
+    background: #f8f9fa;
+    border-color: #4b6cb7;
+}
+
+.filter-btn.active {
+    background: #4b6cb7;
+    color: white;
+    border-color: #4b6cb7;
+}
+
+.filter-warning.active {
+    background: #ffc107;
+    border-color: #ffc107;
+}
+
+.filter-critical.active {
+    background: #dc3545;
+    border-color: #dc3545;
+}
+
+.filter-danger.active {
+    background: #6c757d;
+    border-color: #6c757d;
+}
+
+.recommendations {
+    background: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.recommendations h3 {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    color: #495057;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.recommendations-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+}
+
+.recommendation-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #4b6cb7;
+}
+
+.recommendation-icon {
+    width: 50px;
+    height: 50px;
+    background: #4b6cb7;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+}
+
+.recommendation-content h4 {
+    margin: 0 0 0.5rem 0;
+    color: #495057;
+    font-size: 1rem;
+}
+
+.recommendation-content p {
+    margin: 0;
+    color: #6c757d;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.empty-icon {
+    margin-bottom: 1.5rem;
+    color: #28a745;
+}
+
+.empty-state h2 {
+    margin-bottom: 1rem;
+    color: #495057;
+}
+
+.empty-state p {
+    margin-bottom: 2rem;
+    color: #6c757d;
+}
+
+.export-section {
+    background: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-top: 1.5rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.export-section h3 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    color: #495057;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.export-buttons {
+    display: flex;
+    gap: 1rem;
+}
+
+@media (max-width: 768px) {
+    .page-header {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .header-stats {
+        justify-content: center;
+    }
+    
+    .filter-buttons {
+        flex-direction: column;
+    }
+    
+    .filter-btn {
+        text-align: center;
+    }
+    
+    .recommendations-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .export-buttons {
+        flex-direction: column;
+    }
+    
+    .btn {
+        width: 100%;
+    }
+}
+</style>
+
+<script>
+function exportOverdueToPDF() {
+    alert('Экспорт просроченных заявок в PDF');
+    // Реализация экспорта в PDF
+}
+
+function exportOverdueToExcel() {
+    alert('Экспорт просроченных заявок в Excel');
+    // Реализация экспорта в Excel
+}
+
+function printOverdueReport() {
+    window.print();
+}
+
+// Автоматическое обновление каждые 30 секунд
+setTimeout(function() {
+    location.reload();
+}, 30000);
+</script>
+{% endblock %}

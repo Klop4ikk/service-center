@@ -1,0 +1,310 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    {% if user %}Редактирование пользователя{% else %}Добавление пользователя{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>
+        <i class="fas {% if user %}fa-edit{% else %}fa-user-plus{% endif %}"></i>
+        {% if user %}Редактирование пользователя{% else %}Добавление пользователя{% endif %}
+    </h1>
+    <a href="{{ url_for('users') }}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Назад к списку
+    </a>
+</div>
+
+<div class="form-container">
+    <form method="POST" class="user-form">
+        <div class="form-section">
+            <h3><i class="fas fa-id-card"></i> Основная информация</h3>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="fio">
+                        <i class="fas fa-user"></i> ФИО *
+                    </label>
+                    <input type="text" 
+                           id="fio" 
+                           name="fio" 
+                           value="{{ user.fio if user else '' }}" 
+                           placeholder="Иванов Иван Иванович" 
+                           required>
+                    <small class="form-text">Полное имя пользователя</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="phone">
+                        <i class="fas fa-phone"></i> Телефон *
+                    </label>
+                    <input type="tel" 
+                           id="phone" 
+                           name="phone" 
+                           value="{{ user.phone if user else '' }}" 
+                           placeholder="+7 (999) 123-45-67" 
+                           required>
+                    <small class="form-text">Номер телефона для связи</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <h3><i class="fas fa-key"></i> Учетные данные</h3>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="login">
+                        <i class="fas fa-user-circle"></i> Логин *
+                    </label>
+                    <input type="text" 
+                           id="login" 
+                           name="login" 
+                           value="{{ user.login if user else '' }}" 
+                           placeholder="username" 
+                           required>
+                    <small class="form-text">Уникальное имя для входа в систему</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">
+                        <i class="fas fa-lock"></i> Пароль {% if not user %}*{% endif %}
+                    </label>
+                    <input type="password" 
+                           id="password" 
+                           name="password" 
+                           placeholder="{% if user %}Оставьте пустым, чтобы не менять{% else %}Введите пароль{% endif %}" 
+                           {% if not user %}required{% endif %}>
+                    <small class="form-text">
+                        {% if user %}
+                        Введите новый пароль только если хотите его изменить
+                        {% else %}
+                        Пароль должен содержать не менее 6 символов
+                        {% endif %}
+                    </small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <h3><i class="fas fa-user-tag"></i> Права доступа</h3>
+            
+            <div class="form-group">
+                <label for="type">
+                    <i class="fas fa-shield-alt"></i> Тип пользователя *
+                </label>
+                <select id="type" name="type" required>
+                    <option value="">-- Выберите тип --</option>
+                    <option value="admin" {% if user and user.type == 'admin' %}selected{% endif %}>
+                        Администратор
+                    </option>
+                    <option value="Оператор" {% if user and user.type == 'Оператор' %}selected{% endif %}>
+                        Оператор
+                    </option>
+                    <option value="Мастер" {% if user and user.type == 'Мастер' %}selected{% endif %}>
+                        Мастер
+                    </option>
+                    <option value="Заказчик" {% if user and user.type == 'Заказчик' %}selected{% endif %}>
+                        Заказчик
+                    </option>
+                    <option value="Менеджер" {% if user and user.type == 'Менеджер' %}selected{% endif %}>
+                        Менеджер
+                    </option>
+                    <option value="Менеджер по качеству" {% if user and user.type == 'Менеджер по качеству' %}selected{% endif %}>
+                        Менеджер по качеству
+                    </option>
+                </select>
+                
+                <div class="role-descriptions">
+                    <div class="role-desc">
+                        <h4><i class="fas fa-crown"></i> Администратор</h4>
+                        <p>Полный доступ ко всем функциям системы, управление пользователями</p>
+                    </div>
+                    
+                    <div class="role-desc">
+                        <h4><i class="fas fa-headset"></i> Оператор</h4>
+                        <p>Создание и редактирование заявок, назначение мастеров, просмотр статистики</p>
+                    </div>
+                    
+                    <div class="role-desc">
+                        <h4><i class="fas fa-tools"></i> Мастер</h4>
+                        <p>Работа с назначенными заявками, добавление комментариев, обновление статусов</p>
+                    </div>
+                    
+                    <div class="role-desc">
+                        <h4><i class="fas fa-user"></i> Заказчик</h4>
+                        <p>Создание и просмотр своих заявок, отслеживание статусов</p>
+                    </div>
+                    
+                    <div class="role-desc">
+                        <h4><i class="fas fa-user-tie"></i> Менеджер</h4>
+                        <p>Управление заявками и пользователями, просмотр статистики</p>
+                    </div>
+                    
+                    <div class="role-desc">
+                        <h4><i class="fas fa-chart-line"></i> Менеджер по качеству</h4>
+                        <p>Контроль сроков выполнения, продление заявок, привлечение мастеров</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary btn-lg">
+                <i class="fas fa-save"></i> {% if user %}Сохранить изменения{% else %}Создать пользователя{% endif %}
+            </button>
+            
+            <button type="reset" class="btn btn-secondary">
+                <i class="fas fa-undo"></i> Сбросить
+            </button>
+            
+            <a href="{{ url_for('users') }}" class="btn btn-outline">
+                <i class="fas fa-times"></i> Отмена
+            </a>
+        </div>
+    </form>
+</div>
+
+<style>
+.form-container {
+    max-width: 900px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 10px;
+    padding: 2rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.form-section {
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid #eee;
+}
+
+.form-section:last-child {
+    border-bottom: none;
+}
+
+.form-section h3 {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    color: #4b6cb7;
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: #495057;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ced4da;
+    border-radius: 5px;
+    font-size: 1rem;
+    transition: all 0.3s;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: #4b6cb7;
+    box-shadow: 0 0 0 3px rgba(75, 108, 183, 0.1);
+}
+
+.form-text {
+    display: block;
+    margin-top: 0.25rem;
+    color: #6c757d;
+    font-size: 0.875rem;
+}
+
+.role-descriptions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.role-desc {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 1rem;
+    border-left: 3px solid #4b6cb7;
+}
+
+.role-desc h4 {
+    margin: 0 0 0.5rem 0;
+    color: #495057;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.role-desc p {
+    margin: 0;
+    font-size: 0.8rem;
+    color: #6c757d;
+    line-height: 1.4;
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #eee;
+}
+
+.btn-lg {
+    padding: 0.75rem 1.5rem;
+    font-size: 1.1rem;
+}
+
+@media (max-width: 768px) {
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+    
+    .btn {
+        width: 100%;
+    }
+    
+    .role-descriptions {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+{% endblock %}
